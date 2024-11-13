@@ -31,7 +31,7 @@ func (rcp RedisCachePlugin) Response(kong *pdk.PDK) {
 	_, err := rdb.Get(rcp.RedisCacheKey).Result()
 
 	if err == redis.Nil {
-		err := rdb.Set("banks-api-response", string(responseKong), 0).Err()
+		err := rdb.Set(rcp.RedisCacheKey, string(responseKong), 0).Err()
 
 		if err != nil {
 			msg := map[string]string{
