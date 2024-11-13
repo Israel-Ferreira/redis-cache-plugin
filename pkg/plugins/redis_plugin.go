@@ -13,7 +13,8 @@ type RedisCachePlugin struct {
 	RedisPssw string `json:"redis_pssw"`
 	RedisUser string `json:"redis_user"`
 
-	DB int `json:"redis_db"`
+	DB            int    `json:"redis_db"`
+	RedisCacheKey string `json:"redis_cache_key"`
 }
 
 func (rcp RedisCachePlugin) Response(kong *pdk.PDK) {
@@ -27,17 +28,21 @@ func (rcp RedisCachePlugin) Response(kong *pdk.PDK) {
 
 	responseKong, _ := kong.ServiceResponse.GetRawBody()
 
-	err := rdb.Set("banks-api-response", string(responseKong), 0).Err()
+	_, err := rdb.Get(rcp.RedisCacheKey).Result()
 
-	if err != nil {
-		msg := map[string]string{
-			"msg": fmt.Sprintf("Erro ao conectar com o redis: %v", err),
+	if err == redis.Nil {
+		err := rdb.Set("banks-api-response", string(responseKong), 0).Err()
+
+		if err != nil {
+			msg := map[string]string{
+				"msg": fmt.Sprintf("Erro ao conectar com o redis: %v", err),
+			}
+
+			json_msg, _ := json.Marshal(&msg)
+
+			kong.Response.Exit(500, json_msg, nil)
+			return
 		}
-
-		json_msg, _ := json.Marshal(&msg)
-
-		kong.Response.Exit(500, json_msg, nil)
-		return
 	}
 
 }
