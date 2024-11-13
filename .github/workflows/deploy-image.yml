@@ -1,0 +1,30 @@
+on: push
+
+jobs:
+  deploy-kong-custom-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: docker/login-action@v3
+        name: Login Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set short git commit SHA
+        id: vars
+        run: |
+          calculatedSha=$(git rev-parse --short ${{ github.sha }})
+          echo "COMMIT_SHORT_SHA=$calculatedSha" >> $GITHUB_ENV
+
+
+      - name: Confirm git commit SHA output
+        run: echo ${{ env.COMMIT_SHORT_SHA }}
+
+      - uses: docker/build-push-action@v6
+        name: Build and Push Image to Docker Hub
+        with:
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/kong-with-elk-plugin:${{env.COMMIT_SHORT_SHA}}
+
