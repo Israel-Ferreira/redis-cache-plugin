@@ -18,6 +18,7 @@ type RedisCachePlugin struct {
 }
 
 func (rcp RedisCachePlugin) Access(kong *pdk.PDK) {
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     rcp.RedisAddr,
 		Password: rcp.RedisPssw, // no password set
@@ -27,14 +28,7 @@ func (rcp RedisCachePlugin) Access(kong *pdk.PDK) {
 	result, err := rdb.Get(rcp.RedisCacheKey).Result()
 
 	if err != nil && err != redis.Nil {
-
-		msg := map[string]string{
-			"msg": fmt.Sprintf("Erro ao conectar com o redis: %v", err),
-		}
-
-		json_msg, _ := json.Marshal(&msg)
-
-		kong.Response.Exit(500, json_msg, nil)
+		rcp.handleError(fmt.Sprintf("Erro ao conectar com o redis: %v", err), kong)
 		return
 	}
 
@@ -71,17 +65,21 @@ func (rcp RedisCachePlugin) Response(kong *pdk.PDK) {
 		err := rdb.Set(rcp.RedisCacheKey, string(responseKong), 0).Err()
 
 		if err != nil {
-			msg := map[string]string{
-				"msg": fmt.Sprintf("Erro ao conectar com o redis: %v", err),
-			}
-
-			json_msg, _ := json.Marshal(&msg)
-
-			kong.Response.Exit(500, json_msg, nil)
+			rcp.handleError(fmt.Sprintf("Erro ao conectar com o redis: %v", err), kong)
 			return
 		}
 	}
 
+}
+
+func (rcp RedisCachePlugin) handleError(msg string, kong *pdk.PDK) {
+	jsonMsg := map[string]string{
+		"msg": msg,
+	}
+
+	response, _ := json.Marshal(&jsonMsg)
+
+	kong.Response.Exit(500, response, nil)
 }
 
 func New() any {
