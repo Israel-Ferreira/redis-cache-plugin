@@ -17,6 +17,38 @@ type RedisCachePlugin struct {
 	RedisCacheKey string `json:"redis_cache_key"`
 }
 
+func (rcp RedisCachePlugin) Access(kong *pdk.PDK) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     rcp.RedisAddr,
+		Password: rcp.RedisPssw, // no password set
+		DB:       rcp.DB,        // use default DB
+	})
+
+	result, err := rdb.Get(rcp.RedisCacheKey).Result()
+
+	if err != nil && err != redis.Nil {
+
+		msg := map[string]string{
+			"msg": fmt.Sprintf("Erro ao conectar com o redis: %v", err),
+		}
+
+		json_msg, _ := json.Marshal(&msg)
+
+		kong.Response.Exit(500, json_msg, nil)
+		return
+	}
+
+	if result != "" {
+		response, _ := json.Marshal(result)
+
+		kong.Response.SetHeader("X-Cache-Redis-Hit", "true")
+		kong.Response.Exit(200, response, nil)
+
+		return
+	}
+
+}
+
 func (rcp RedisCachePlugin) Response(kong *pdk.PDK) {
 	fmt.Println(rcp.RedisPssw)
 
