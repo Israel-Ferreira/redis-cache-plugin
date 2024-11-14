@@ -39,7 +39,12 @@ func (rcp RedisCachePlugin) Access(kong *pdk.PDK) {
 	}
 
 	if result != "" {
-		response, _ := json.Marshal(result)
+
+		var jsonResult []map[string]any
+
+		json.Unmarshal([]byte(result), &jsonResult)
+
+		response, _ := json.Marshal(jsonResult)
 
 		kong.Response.SetHeader("X-Cache-Redis-Hit", "true")
 		kong.Response.Exit(200, response, nil)
